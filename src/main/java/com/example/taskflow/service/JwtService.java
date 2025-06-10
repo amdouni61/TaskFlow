@@ -1,24 +1,25 @@
-package com.example.taskflow.services;
+package com.example.taskflow.service;
 
 import com.example.taskflow.model.User;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Service;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
+
     @Value("${security.jwt.secret-key}")
     private String secretKey;
 
@@ -36,8 +37,13 @@ public class JwtService {
 
     public String generateToken(User userDetails) {
         HashMap<String, Object> claims = new HashMap<>();
-        claims.put("role", userDetails.getRole());
+        // Extract roles as a comma-separated string from authorities
+        String roles = userDetails.getAuthorities().stream()
+                .map(authority -> authority.getAuthority()) // This assumes authorities are roles
+                .collect(Collectors.joining(","));
+        claims.put("roles", roles);  // Store roles as a comma-separated string in claims
         claims.put("email", userDetails.getEmail());
+
         return generateToken(claims, userDetails);
     }
 
@@ -91,4 +97,3 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
-

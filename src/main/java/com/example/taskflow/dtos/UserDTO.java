@@ -1,42 +1,42 @@
-package com.example.taskflow.model;
+package com.example.taskflow.dtos;
 
 import com.example.taskflow.model.enums.UserRole;
-import jakarta.persistence.*;
-import lombok.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.util.Collection;
-import java.util.List;
-
-@Entity
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
-public class User implements UserDetails {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class UserDTO {
+
     private Long id;
 
+    @NotEmpty(message = "Username is required")
     private String username;
+
+    @NotEmpty(message = "Full name is required")
     private String fullName;
+
+    @NotEmpty(message = "Email is required")
     private String email;
+
     private String avatarUrl;
-    private String password;  // Added password field
-    private boolean enabled;
 
-    @ManyToOne
-    private Team team;
-
-
-    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Roles are required")
     private UserRole role;
 
-    // Getters and setters for all fields
+    private boolean enabled;
 
+    private String password;  // Added password field
+
+    private Long teamId;
+    private String teamName;
+
+    public UserDTO() {}
+
+    // Getters and setters for all fields
     public Long getId() {
         return id;
     }
@@ -47,21 +47,6 @@ public class User implements UserDetails {
 
     public String getUsername() {
         return username;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return false;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return false;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return false;
     }
 
     public void setUsername(String username) {
@@ -92,9 +77,14 @@ public class User implements UserDetails {
         this.avatarUrl = avatarUrl;
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     public String getPassword() {
@@ -105,21 +95,19 @@ public class User implements UserDetails {
         this.password = password;  // Setter for password
     }
 
-    public boolean isEnabled() {
-        return enabled;
+    public Long getTeamId() {
+        return teamId;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    public void setTeamId(Long teamId) {
+        this.teamId = teamId;
     }
 
-    public Team getTeam() {
-        return team;
+    public String getTeamName() {
+        return teamName;
     }
 
-    public void setTeam(Team team) {
-        this.team = team;
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
     }
-
-
 }

@@ -2,7 +2,6 @@ package com.example.taskflow.responses;
 
 public class LoginResponse {
     private String token;
-
     private long expiresIn;
 
     public String getToken() {
@@ -21,13 +20,5 @@ public class LoginResponse {
     public LoginResponse setExpiresIn(long expiresIn) {
         this.expiresIn = expiresIn;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return "LoginResponse{" +
-                "token='" + token + '\'' +
-                ", expiresIn=" + expiresIn +
-                '}';
     }
 }
