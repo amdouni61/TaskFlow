@@ -33,4 +33,23 @@ public class TeamDTO {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public List<UserDTO> getMembers() { return members; }
+    public void setMembers(List<UserDTO> members) { this.members = members; }
+    public Long getTeamLeadId() { return teamLeadId; }
+    public void setTeamLeadId(Long teamLeadId) { this.teamLeadId = teamLeadId; }
+    public String getTeamLeadUsername() { return teamLeadUsername; }
+    public void setTeamLeadUsername(String teamLeadUsername) { this.teamLeadUsername = teamLeadUsername; }
+    public String getTeamLeadFullName() { return teamLeadFullName; }
+    public void setTeamLeadFullName(String teamLeadFullName) { this.teamLeadFullName = teamLeadFullName; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

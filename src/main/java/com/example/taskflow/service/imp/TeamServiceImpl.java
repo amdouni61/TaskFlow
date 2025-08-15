@@ -205,14 +205,16 @@ public class TeamServiceImpl implements TeamService {
 
 
     private Team convertToEntity(TeamDTO teamDTO) {
-        Team team = modelMapper.map(teamDTO, Team.class);
-        
+        Team team = new Team();
+        team.setName(teamDTO.getName());
+        team.setDescription(teamDTO.getDescription());
         if (teamDTO.getTeamLeadId() != null) {
             User teamLead = userRepository.findById(teamDTO.getTeamLeadId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + teamDTO.getTeamLeadId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + teamDTO.getTeamLeadId()));
             team.setTeamLead(teamLead);
+        } else {
+            team.setTeamLead(null);
         }
-        
         return team;
     }
 }

@@ -27,17 +27,32 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Use AntPathRequestMatcher to handle the paths explicitly
-                        .requestMatchers(new AntPathRequestMatcher("/auth/**")).permitAll()  // Allow access to /auth endpoints
-                        .requestMatchers(new AntPathRequestMatcher("/api/users")).hasRole("ADMIN")  // Restrict /api/users to ADMIN only
-                        .anyRequest().authenticated()  // Secure the rest
+                        // Public endpoints
+                        .requestMatchers(new AntPathRequestMatcher("/auth/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
+                        
+                        // Admin endpoints - require ADMIN role
+                        .requestMatchers(new AntPathRequestMatcher("/api/admin/**")).hasRole("ADMIN")
+                        
+                        // User endpoints - require authentication
+                        .requestMatchers(new AntPathRequestMatcher("/api/users/**")).authenticated()
+                        .requestMatchers(new AntPathRequestMatcher("/api/tasks/**")).authenticated()
+                        .requestMatchers(new AntPathRequestMatcher("/api/teams/**")).authenticated()
+                        .requestMatchers(new AntPathRequestMatcher("/api/comments/**")).authenticated()
+                        
+                        // Default - require authentication
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)  // Add JWT filter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .cors(cors -> cors.configurationSource(request -> {
-                    // CORS configuration
-                    return new org.springframework.web.cors.CorsConfiguration().applyPermitDefaultValues();
+                    org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
+                    config.addAllowedOrigin("http://localhost:4200");
+                    config.addAllowedMethod("*");
+                    config.addAllowedHeader("*");
+                    config.setAllowCredentials(true);
+                    return config;
                 }));
 
         return http.build();

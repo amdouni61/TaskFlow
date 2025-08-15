@@ -1,9 +1,7 @@
 package com.example.taskflow.conrollers;
 
 import com.example.taskflow.dtos.LoginUserDto;
-import com.example.taskflow.dtos.RegisterUserDto;
 import com.example.taskflow.exceptions.InvalidCredentialsException;
-import com.example.taskflow.exceptions.UserAlreadyExistsException;
 import com.example.taskflow.model.User;
 import com.example.taskflow.responses.ErrorResponse;
 import com.example.taskflow.responses.LoginResponse;
@@ -26,20 +24,6 @@ public class AuthenticationController {
         this.authenticationService = authenticationService;
     }
 
-    @PostMapping("/signup")
-    public ResponseEntity<?> register(@RequestBody RegisterUserDto registerUserDto) {
-        try {
-            User registeredUser = authenticationService.signup(registerUserDto);
-            return ResponseEntity.ok(registeredUser); // Return registered user on success
-        } catch (UserAlreadyExistsException ex) {
-            ErrorResponse errorResponse = new ErrorResponse("USER_ALREADY_EXISTS", "Email is already in use");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        } catch (Exception ex) {
-            ErrorResponse errorResponse = new ErrorResponse("INTERNAL_ERROR", "An error occurred during registration");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-
     @PostMapping("/login")
     public ResponseEntity<?> authenticate(@RequestBody LoginUserDto loginUserDto) {
         try {
@@ -47,9 +31,12 @@ public class AuthenticationController {
 
             String jwtToken = jwtService.generateToken(authenticatedUser);
 
-            LoginResponse loginResponse = new LoginResponse().setToken(jwtToken).setExpiresIn(jwtService.getExpirationTime());
+            LoginResponse loginResponse = new LoginResponse()
+                .setToken(jwtToken)
+                .setExpiresIn(jwtService.getExpirationTime())
+                .setUser(authenticatedUser); // Include user info in response
 
-            return ResponseEntity.ok(loginResponse); // Return login response on success
+            return ResponseEntity.ok(loginResponse);
         } catch (InvalidCredentialsException ex) {
             ErrorResponse errorResponse = new ErrorResponse("INVALID_CREDENTIALS", "Invalid email or password");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);

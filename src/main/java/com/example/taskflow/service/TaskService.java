@@ -3,10 +3,12 @@ package com.example.taskflow.service;
 
 import com.example.taskflow.dtos.CommentDTO;
 import com.example.taskflow.dtos.TaskDTO;
+import com.example.taskflow.dtos.TaskStatisticsDTO;
 import com.example.taskflow.model.Task;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 
 public interface TaskService {
@@ -42,4 +44,22 @@ public interface TaskService {
     boolean isTaskCreatedByCurrentUser(Long taskId);
 
     List<TaskDTO> getCurrentUserTasks();
+
+    // Get task statistics for dashboard
+    TaskStatisticsDTO getTaskStatistics();
+
+    // Get recent tasks
+    List<TaskDTO> getRecentTasks(int limit);
+
+    // Get related tasks (same team or assignee)
+    List<TaskDTO> getRelatedTasks(Long taskId);
+
+    // Get tasks grouped by team
+    Map<String, List<TaskDTO>> getTasksByTeam();
+
+    // Get filtered tasks
+    List<TaskDTO> getFilteredTasks(Map<String, Object> filters);
+
+    // Get tasks by user ID
+    List<TaskDTO> getTasksByUserId(Long userId);
 }

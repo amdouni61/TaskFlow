@@ -2,6 +2,7 @@ package com.example.taskflow.service.imp;
 
 import com.example.taskflow.dtos.CommentDTO;
 import com.example.taskflow.dtos.TaskDTO;
+import com.example.taskflow.dtos.TaskStatisticsDTO;
 import com.example.taskflow.exceptions.ResourceNotFoundException;
 import com.example.taskflow.exceptions.UnauthorizedException;
 import com.example.taskflow.model.Comment;
@@ -19,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -274,8 +277,148 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<TaskDTO> getCurrentUserTasks() {
-        User currentUser = getCurrentUserEntity();
-        return taskRepository.findByUser(currentUser).stream()
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserEmail = authentication.getName();
+        User currentUser = userRepository.findByEmail(currentUserEmail).orElse(null);
+        
+        if (currentUser == null) {
+            return new ArrayList<>();
+        }
+        
+        List<Task> userTasks = taskRepository.findByUser(currentUser);
+        return userTasks.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public TaskStatisticsDTO getTaskStatistics() {
+        List<Task> allTasks = taskRepository.findAll();
+        
+        TaskStatisticsDTO statistics = new TaskStatisticsDTO();
+        statistics.setTotalTasksCount(allTasks.size());
+        statistics.setCompletedTasksCount((long) allTasks.stream().filter(t -> t.getStatus() == Task.TaskStatus.COMPLETED).count());
+        statistics.setPendingTasksCount((long) allTasks.stream().filter(t -> t.getStatus() == Task.TaskStatus.PENDING).count());
+        statistics.setApprovedTasksCount((long) allTasks.stream().filter(t -> t.getStatus() == Task.TaskStatus.APPROVED).count());
+        statistics.setRejectedTasksCount((long) allTasks.stream().filter(t -> t.getStatus() == Task.TaskStatus.REJECTED).count());
+        
+        return statistics;
+    }
+
+    @Override
+    public List<TaskDTO> getRecentTasks(int limit) {
+        // For now, we'll get all tasks and limit them
+        // In a real application, you'd add a repository method for this
+        List<Task> allTasks = taskRepository.findAll();
+        List<Task> recentTasks = allTasks.stream()
+                .sorted((t1, t2) -> {
+                    if (t1.getCreatedAt() == null && t2.getCreatedAt() == null) return 0;
+                    if (t1.getCreatedAt() == null) return 1;
+                    if (t2.getCreatedAt() == null) return -1;
+                    return t2.getCreatedAt().compareTo(t1.getCreatedAt());
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        return recentTasks.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<TaskDTO> getRelatedTasks(Long taskId) {
+        Task currentTask = taskRepository.findById(taskId).orElse(null);
+        if (currentTask == null) {
+            return new ArrayList<>();
+        }
+        
+        List<Task> relatedTasks = new ArrayList<>();
+        
+        // Get tasks from same user (creator)
+        if (currentTask.getUser() != null) {
+            List<Task> userTasks = taskRepository.findByUser(currentTask.getUser());
+            relatedTasks.addAll(userTasks);
+        }
+        
+        // Get tasks from same supervisor
+        if (currentTask.getSupervisor() != null) {
+            List<Task> supervisorTasks = taskRepository.findBySupervisor(currentTask.getSupervisor());
+            relatedTasks.addAll(supervisorTasks);
+        }
+        
+        // Remove current task and duplicates
+        relatedTasks = relatedTasks.stream()
+                .filter(t -> !t.getId().equals(taskId))
+                .distinct()
+                .limit(10) // Limit to 10 related tasks
+                .collect(Collectors.toList());
+        
+        return relatedTasks.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, List<TaskDTO>> getTasksByTeam() {
+        // Since Task doesn't have a team field, we'll group by user instead
+        List<Task> allTasks = taskRepository.findAll();
+        
+        return allTasks.stream()
+                .filter(t -> t.getUser() != null)
+                .collect(Collectors.groupingBy(
+                    t -> t.getUser().getFullName(),
+                    Collectors.mapping(this::convertToDTO, Collectors.toList())
+                ));
+    }
+
+    @Override
+    public List<TaskDTO> getFilteredTasks(Map<String, Object> filters) {
+        // This is a simplified implementation
+        // In a real application, you would build dynamic queries based on filters
+        List<Task> allTasks = taskRepository.findAll();
+        
+        return allTasks.stream()
+                .filter(task -> {
+                    if (filters.containsKey("status") && filters.get("status") != null) {
+                        try {
+                            Task.TaskStatus status = Task.TaskStatus.valueOf(filters.get("status").toString());
+                            if (task.getStatus() != status) return false;
+                        } catch (IllegalArgumentException e) {
+                            return false;
+                        }
+                    }
+                    
+                    if (filters.containsKey("priority") && filters.get("priority") != null) {
+                        try {
+                            Task.TaskPriority priority = Task.TaskPriority.valueOf(filters.get("priority").toString());
+                            if (task.getPriority() != priority) return false;
+                        } catch (IllegalArgumentException e) {
+                            return false;
+                        }
+                    }
+                    
+                    if (filters.containsKey("assignee") && filters.get("assignee") != null) {
+                        try {
+                            Long assigneeId = Long.valueOf(filters.get("assignee").toString());
+                            if (task.getUser() == null || !task.getUser().getId().equals(assigneeId)) return false;
+                        } catch (NumberFormatException e) {
+                            return false;
+                        }
+                    }
+                    
+                    return true;
+                })
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<TaskDTO> getTasksByUserId(Long userId) {
+        List<Task> userTasks = taskRepository.findAll().stream()
+                .filter(t -> t.getUser() != null && t.getUser().getId().equals(userId))
+                .collect(Collectors.toList());
+        
+        return userTasks.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -320,10 +463,8 @@ public class TaskServiceImpl implements TaskService {
 
     private User getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        org.springframework.security.core.userdetails.User userPrincipal =
-                (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
-
-        return userRepository.findByEmail(userPrincipal.getUsername()) // Use email from Spring Security's User principal
+        String email = authentication.getName(); // getName() returns the email (username)
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Current user not found"));
     }
 

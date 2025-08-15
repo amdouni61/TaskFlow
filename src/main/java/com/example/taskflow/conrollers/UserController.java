@@ -1,88 +1,97 @@
 package com.example.taskflow.conrollers;
 
 import com.example.taskflow.dtos.UserDTO;
+import com.example.taskflow.model.enums.UserRole;
 import com.example.taskflow.service.UserService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:4200")
 public class UserController {
 
     @Autowired
     private UserService userService;
 
-   //Get all users.
-
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+        List<UserDTO> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
-
-   //Get user by ID.
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#id)")
     public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.getUserById(id));
+        return userService.getUserById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
-
-    //Get current logged-in user.
-
-    @GetMapping("/me")
-    public ResponseEntity<UserDTO> getCurrentUser() {
-        return ResponseEntity.ok(userService.getCurrentUser());
-    }
-
-   //Create a new user.
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody UserDTO userDTO) {
-        return new ResponseEntity<>(userService.createUser(userDTO), HttpStatus.CREATED);
+    public ResponseEntity<UserDTO> createUser(@RequestBody UserDTO userDTO) {
+        UserDTO createdUser = userService.createUser(userDTO);
+        return ResponseEntity.ok(createdUser);
     }
-
-    //Update a user.
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#id)")
-    public ResponseEntity<UserDTO> updateUser(
-            @PathVariable Long id,
-            @Valid @RequestBody UserDTO userDTO) {
-        return ResponseEntity.ok(userService.updateUser(id, userDTO));
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
+        UserDTO updatedUser = userService.updateUser(id, userDTO);
+        if (updatedUser != null) {
+            return ResponseEntity.ok(updatedUser);
+        }
+        return ResponseEntity.notFound().build();
     }
 
-   //Delete a user.
-
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
-   //Get users by role.
-
-    @GetMapping("/by-role/{roleName}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISOR')")
-    public ResponseEntity<List<UserDTO>> getUsersByRole(@PathVariable String roleName) {
-        return ResponseEntity.ok(userService.getUsersByRole(roleName));
+    @PutMapping("/{id}/role")
+    public ResponseEntity<UserDTO> updateUserRole(@PathVariable Long id, @RequestParam UserRole role) {
+        UserDTO updatedUser = userService.updateUserRole(id, role);
+        if (updatedUser != null) {
+            return ResponseEntity.ok(updatedUser);
+        }
+        return ResponseEntity.notFound().build();
     }
 
-     //Get users by team.
+    @PutMapping("/{id}/hide")
+    public ResponseEntity<Void> hideUser(@PathVariable Long id) {
+        boolean success = userService.hideUser(id);
+        if (success) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
 
-    @GetMapping("/by-team/{teamId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISOR')")
-    public ResponseEntity<List<UserDTO>> getUsersByTeam(@PathVariable Long teamId) {
-        return ResponseEntity.ok(userService.getUsersByTeam(teamId));
+    @PutMapping("/{id}/unhide")
+    public ResponseEntity<Void> unhideUser(@PathVariable Long id) {
+        boolean success = userService.unhideUser(id);
+        if (success) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/{id}/hidden-status")
+    public ResponseEntity<Boolean> isUserHidden(@PathVariable Long id) {
+        boolean isHidden = userService.isUserHidden(id);
+        return ResponseEntity.ok(isHidden);
+    }
+
+    @GetMapping("/online-status")
+    public ResponseEntity<Map<String, Object>> getOnlineUsersStatus() {
+        // This endpoint can be used to get initial online status
+        // Real-time updates will come through WebSocket
+        return ResponseEntity.ok(Map.of(
+            "message", "Use WebSocket /topic/user-status for real-time updates",
+            "endpoint", "/ws"
+        ));
     }
 }

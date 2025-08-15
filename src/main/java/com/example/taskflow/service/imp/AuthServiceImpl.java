@@ -37,12 +37,12 @@ public class AuthServiceImpl {
         // Default role for the user
         UserRole userRole = input.getRole() != null ? input.getRole() : UserRole.USER;
 
-        var user = User.builder()
-                .fullName(input.getFullName())
-                .email(input.getEmail())
-                .role(userRole)
-                .password(passwordEncoder.encode(input.getPassword()))
-                .build();
+        User user = new User();
+        user.setFullName(input.getFullName());
+        user.setEmail(input.getEmail());
+        user.setRole(userRole);
+        user.setPassword(passwordEncoder.encode(input.getPassword()));
+        user.setEnabled(true);
 
         return userRepository.save(user);
     }
