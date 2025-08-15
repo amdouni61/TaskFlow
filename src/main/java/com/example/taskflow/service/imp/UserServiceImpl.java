@@ -51,7 +51,7 @@ public class UserServiceImpl implements UserService {
         user.setUsername(userDTO.getUsername());
         user.setRole(userDTO.getRole());
         user.setEnabled(true);
-        user.setHidden(false);
+        user.setIsHidden(false);
         user.setAvatarUrl(userDTO.getAvatarUrl());
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
@@ -104,7 +104,7 @@ public class UserServiceImpl implements UserService {
         Optional<User> existingUser = userRepository.findById(id);
         if (existingUser.isPresent()) {
             User user = existingUser.get();
-            user.setHidden(true);
+            user.setIsHidden(true);
             user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
             return true;
@@ -117,7 +117,7 @@ public class UserServiceImpl implements UserService {
         Optional<User> existingUser = userRepository.findById(id);
         if (existingUser.isPresent()) {
             User user = existingUser.get();
-            user.setHidden(false);
+            user.setIsHidden(false);
             user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
             return true;
@@ -128,7 +128,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean isUserHidden(Long id) {
         User user = userRepository.findById(id).orElse(null);
-        return user != null && user.isHidden();
+        return user != null && user.getIsHidden();
     }
 
     @Override
@@ -137,7 +137,7 @@ public class UserServiceImpl implements UserService {
         // For now, we'll return all non-hidden users
         // In a real application, you'd track user activity and filter by that
         List<User> activeUsers = userRepository.findAll().stream()
-                .filter(user -> !user.isHidden())
+                .filter(user -> !user.getIsHidden())
                 .limit(20) // Limit to 20 most recent active users
                 .collect(Collectors.toList());
         
@@ -188,7 +188,7 @@ public class UserServiceImpl implements UserService {
         dto.setRole(user.getRole());
         dto.setEnabled(user.isEnabled());
         dto.setAvatarUrl(user.getAvatarUrl());
-        dto.setHidden(user.isHidden());
+        dto.setHidden(user.getIsHidden());
         dto.setLastActivityAt(user.getLastActivityAt());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());

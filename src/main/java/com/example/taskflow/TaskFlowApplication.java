@@ -30,7 +30,7 @@ public class TaskFlowApplication {
                 adminUser.setUsername("admin");
                 adminUser.setRole(UserRole.ADMIN);
                 adminUser.setEnabled(true);
-                adminUser.setHidden(false);
+                adminUser.setIsHidden(false);
                 adminUser.setAvatarUrl("https://ui-avatars.com/api/?name=Admin&background=0D47A1&color=fff");
                 
                 userRepository.save(adminUser);
