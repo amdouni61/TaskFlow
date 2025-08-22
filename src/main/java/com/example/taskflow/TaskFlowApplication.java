@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
+
 @SpringBootApplication
 @EnableScheduling
 public class TaskFlowApplication {
@@ -21,8 +23,12 @@ public class TaskFlowApplication {
     @Bean
     CommandLineRunner commandLineRunner(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
+            System.out.println("=== CommandLineRunner Starting ===");
+            
             // Check if admin user already exists
-            if (userRepository.findByEmail("abdennour.amdouni@gmail.com").isEmpty()) {
+            var existingAdmin = userRepository.findByEmail("abdennour.amdouni@gmail.com");
+            if (existingAdmin.isEmpty()) {
+                System.out.println("Admin user not found, creating new one...");
                 User adminUser = new User();
                 adminUser.setEmail("abdennour.amdouni@gmail.com");
                 adminUser.setPassword(passwordEncoder.encode("admin123"));
@@ -35,7 +41,37 @@ public class TaskFlowApplication {
                 
                 userRepository.save(adminUser);
                 System.out.println("Default admin user created: abdennour.amdouni@gmail.com / admin123");
+            } else {
+                // Reactivate admin user if it exists but is deactivated
+                User adminUser = existingAdmin.get();
+                Boolean isHidden = adminUser.getIsHidden();
+                boolean isEnabled = adminUser.isEnabled();
+                
+                System.out.println("Admin user found:");
+                System.out.println("  - Email: " + adminUser.getEmail());
+                System.out.println("  - isHidden: " + isHidden);
+                System.out.println("  - isEnabled: " + isEnabled);
+                System.out.println("  - Role: " + adminUser.getRole());
+                
+                if ((isHidden != null && isHidden) || !isEnabled) {
+                    System.out.println("Reactivating admin user...");
+                    adminUser.setIsHidden(false);
+                    adminUser.setEnabled(true);
+                    adminUser.setLastActivityAt(LocalDateTime.now());
+                    userRepository.save(adminUser);
+                    System.out.println("Admin user reactivated: abdennour.amdouni@gmail.com");
+                } else {
+                    System.out.println("Admin user is already active");
+                    // Always update lastActivityAt to prevent session expiration
+                    if (adminUser.getLastActivityAt() == null) {
+                        adminUser.setLastActivityAt(LocalDateTime.now());
+                        userRepository.save(adminUser);
+                        System.out.println("Updated lastActivityAt for admin user");
+                    }
+                }
             }
+            
+            System.out.println("=== CommandLineRunner Completed ===");
         };
     }
 }

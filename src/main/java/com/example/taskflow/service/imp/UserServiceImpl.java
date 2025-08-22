@@ -128,7 +128,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean isUserHidden(Long id) {
         User user = userRepository.findById(id).orElse(null);
-        return user != null && user.getIsHidden();
+        return user != null && user.getIsHidden() != null && user.getIsHidden();
     }
 
     @Override
@@ -137,7 +137,7 @@ public class UserServiceImpl implements UserService {
         // For now, we'll return all non-hidden users
         // In a real application, you'd track user activity and filter by that
         List<User> activeUsers = userRepository.findAll().stream()
-                .filter(user -> !user.getIsHidden())
+                .filter(user -> user.getIsHidden() == null || !user.getIsHidden())
                 .limit(20) // Limit to 20 most recent active users
                 .collect(Collectors.toList());
         
@@ -188,7 +188,8 @@ public class UserServiceImpl implements UserService {
         dto.setRole(user.getRole());
         dto.setEnabled(user.isEnabled());
         dto.setAvatarUrl(user.getAvatarUrl());
-        dto.setHidden(user.getIsHidden());
+        // Fix null pointer exception by safely handling isHidden
+        dto.setHidden(user.getIsHidden() != null ? user.getIsHidden() : false);
         dto.setLastActivityAt(user.getLastActivityAt());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());

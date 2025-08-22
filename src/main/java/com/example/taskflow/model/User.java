@@ -90,7 +90,9 @@ public class User implements UserDetails {
 
     public boolean isSessionExpired() {
         if (lastActivityAt == null) {
-            return true;
+            // If lastActivityAt is null, the user hasn't been active yet
+            // Don't mark them as expired - this is a new or inactive user
+            return false;
         }
         // Session expires after 2 hours of inactivity
         return LocalDateTime.now().isAfter(lastActivityAt.plusHours(2));

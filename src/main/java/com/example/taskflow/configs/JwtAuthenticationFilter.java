@@ -1,8 +1,8 @@
 package com.example.taskflow.configs;
 
-import com.example.taskflow.service.SessionService;
-import com.example.taskflow.service.OnlineStatusService;
 import com.example.taskflow.service.JwtService;
+import com.example.taskflow.service.OnlineStatusService;
+import com.example.taskflow.service.SessionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -47,7 +46,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
         
+        logger.debug("🔐 JWT Filter - Processing request: " + request.getRequestURI());
+        logger.debug("🔐 JWT Filter - Authorization header: " + (authHeader != null ? "present" : "missing"));
+        
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.debug("🔐 JWT Filter - No Bearer token, continuing filter chain");
             filterChain.doFilter(request, response);
             return;
         }
@@ -55,11 +58,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
         userEmail = jwtService.extractUsername(jwt);
         
+        logger.debug("🔐 JWT Filter - Extracted user email: " + userEmail);
+        
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            logger.debug("🔐 JWT Filter - Loading user details for: " + userEmail);
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
             
+            logger.debug("🔐 JWT Filter - User details loaded: " + (userDetails != null ? "success" : "failed"));
+            
             // Check if user is hidden/deactivated
-            if (sessionService.isUserHidden(userEmail)) {
+            boolean isHidden = sessionService.isUserHidden(userEmail);
+            logger.debug("🔐 JWT Filter - User hidden check result: " + isHidden);
+            
+            if (isHidden) {
                 logger.warn("Access denied: User " + userEmail + " is deactivated");
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.getWriter().write("User account is deactivated");
@@ -67,14 +78,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             
             // Check if user session is expired
-            if (sessionService.isSessionExpired(userEmail)) {
+            boolean isSessionExpired = sessionService.isSessionExpired(userEmail);
+            logger.debug("🔐 JWT Filter - Session expired check result: " + isSessionExpired);
+            
+            if (isSessionExpired) {
                 logger.warn("Access denied: User " + userEmail + " session expired");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("Session expired. Please login again.");
                 return;
             }
             
-            if (jwtService.isTokenValid(jwt, userDetails)) {
+            boolean isTokenValid = jwtService.isTokenValid(jwt, userDetails);
+            logger.debug("🔐 JWT Filter - Token validity check result: " + isTokenValid);
+            
+            if (isTokenValid) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
@@ -95,7 +112,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
                 
                 logger.info("JWT token is valid for user: " + userEmail);
+            } else {
+                logger.warn("🔐 JWT Filter - Token validation failed for user: " + userEmail);
             }
+        } else {
+            logger.debug("🔐 JWT Filter - User email is null or already authenticated");
         }
         
         filterChain.doFilter(request, response);
